@@ -5,12 +5,15 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -18,7 +21,6 @@ import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 import com.esotericsoftware.kryonet.Server;
@@ -28,15 +30,17 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class ServerScreen implements Screen, GestureDetector.GestureListener {
+    Label receivedMsg;
     private final String ip;
     Skin skin;
+    TextField desc;
     Texture texture;
     OrthographicCamera camera;
     ImageButton start;
     ImageButton send;
     Viewport viewport;
     Pixmap pixmap;
-    boolean[] chunk = new boolean[20];
+    boolean[] chunk = new boolean[Config.bytePackageCount];
     SpriteBatch batch;
     byte[] pixelData;
     byte[] bytes;
@@ -44,7 +48,6 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
     private final Phone app;
     Server server;
     Stage stage;
-    Client client;
     byte[] image;
     private Array<Integer> clientsArray;
 
@@ -59,17 +62,32 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
     @Override
     public void show() {
 
-        pixmapUser = new Pixmap(1280, 720, Pixmap.Format.RGB888);
+        pixmapUser = new Pixmap(Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y, Pixmap.Format.RGB888);
         pixmapUser.setColor(1, 1, 1, 1);
         pixmapUser.fill();
         textureUser = new Texture(pixmapUser);
 
         skin = new Skin(Gdx.files.internal("skin/skin-composer-ui.json"));
-        image = new byte[1280 * 720 * 4];
-        camera = new OrthographicCamera(1280, 720);
-        camera.setToOrtho(false, 1280, 720);
-        viewport = new StretchViewport(1280, 720);
+        receivedMsg = new Label("", skin, "default");
+        receivedMsg.setPosition(640 - receivedMsg.getWidth() / 2, 680);
+        TextField.TextFieldStyle style = new TextField.TextFieldStyle();
+        FreeTypeFontGenerator font = new FreeTypeFontGenerator(Gdx.files.internal("Red October.ttf"));
+        FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        parameter.size = 15;
+        style.font = font.generateFont(parameter);
+        style.fontColor = Color.BLACK;
+        desc = new TextField("", skin, "default");
+
+        desc.setSize(500, desc.getHeight());
+        desc.setPosition(640 - desc.getWidth() / 2, 690);
+        image = new byte[Config.imageSize];
+        camera = new OrthographicCamera(Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y);
+        camera.setToOrtho(false, Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y);
+        viewport = new StretchViewport(Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y);
         stage = new Stage(viewport);
+        stage.setDebugAll(true);
+        stage.addActor(desc);
+        stage.addActor(receivedMsg);
         InputMultiplexer inputMultiplexer = new InputMultiplexer(new GestureDetector(this), stage);
         start = new ImageButton(skin, "default");
         start.setBounds(10, 10, 100, 100);
@@ -87,10 +105,34 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 super.clicked(event, x, y);
+                send.setVisible(false);
                 pixelData = ScreenUtils.getFrameBufferPixels(0, 0, 1280, 720, true);
-                bytes = new byte[184321];
+                bytes = new byte[Config.bytePackegeSize + 1];
                 i = 0;
-                new Timer().scheduleTask(new Timer.Task() {
+                if ((clientsArray.size + 1) % 2 == 0) {
+                    new Timer().scheduleTask(new Timer.Task() {
+                        @Override
+                        public void run() {
+                            //bytes = null;
+                            //bytes = new byte[Config.bytePackegeSize + 1];
+                            bytes[0] = i;
+                            System.out.println(i + "  " + bytes[0] * Config.bytePackegeSize);
+                            System.arraycopy(pixelData, Config.bytePackegeSize * bytes[0], bytes, 1, bytes.length - 1);
+                            System.out.println(bytes[0]);
+                            try {
+                                server.sendToTCP(clientsArray.get(0), bytes);
+                            } catch (KryoException e) {
+                                e.printStackTrace();
+                            }
+                            i++;
+                        }
+                    }, Register.TIME_DELTA, Register.TIME_DELTA, Config.bytePackageCount - 1);
+                    server.sendToTCP(clientsArray.get(0), "start");
+                    //server.sendToTCP(clientsArray.get(0), "start" + desc.getText());
+                } else {
+                    server.sendToTCP(clientsArray.get(0), "start" + desc.getText());
+                }
+                /*new Timer().scheduleTask(new Timer.Task() {
                     @Override
                     public void run() {
                         bytes = null;
@@ -99,21 +141,19 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
                         System.arraycopy(pixelData, 184320 * bytes[0], bytes, 1, bytes.length - 1);
                         System.out.println(bytes[0]);
                         try {
-                            client.sendTCP(bytes);
+                            server.sendToTCP(clientsArray.get(0), bytes);
                         } catch (KryoException e) {
-                            try {
-                                client.reconnect();
-                                client.sendTCP(bytes);
-                            } catch (IOException ioException) {
-                                ioException.printStackTrace();
-                            }
+                            e.printStackTrace();
                         }
                         i++;
                     }
-                }, 3 * 1, 1, 19);
+                }, 1, 1, 19);
+                 */
+                //server.sendToTCP(clientsArray.get(0), "start");
+                ///server.sendToTCP(clientsArray.get(0), "start" + desc.getText());
             }
         });
-        stage.addActor(start);
+        //stage.addActor(start);
         stage.addActor(send);
         Gdx.input.setInputProcessor(inputMultiplexer);
         pixmap = new Pixmap(1280, 720, Pixmap.Format.RGBA8888);
@@ -123,8 +163,9 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
         pixmap.dispose();
         clientsArray = new Array<>();
         batch = new SpriteBatch();
-        server = new Server(184400, 184400);
-        server.getKryo().register(Message.class);
+        server = new Server(Register.BUFFER_SIZE, Register.BUFFER_SIZE);
+        Register.register(server.getKryo());
+        /*server.getKryo().register(Message.class);
         server.getKryo().register(Click.class);
         server.getKryo().register(int[].class);
         server.getKryo().register(int[][].class);
@@ -133,180 +174,66 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
         server.getKryo().register(float.class);
         server.getKryo().register(String.class);
         server.getKryo().register(byte[].class);
-        client = new Client(184400, 184400);
 
-        client.getKryo().register(Message.class);
-        client.getKryo().register(Click.class);
-        client.getKryo().register(int[].class);
-        client.getKryo().register(int[][].class);
-        client.getKryo().register(Vector2.class);
-        client.getKryo().register(float.class);
-        client.getKryo().register(float.class);
-        client.getKryo().register(String.class);
-        client.getKryo().register(byte[].class);
+         */
         new Thread(new Runnable() {
             @Override
             public void run() {
                 server.start();
                 try {
-                    server.bind(5555, 6666);
+                    server.bind(Register.TCP_PORT, Register.UDP_PORT);
                     server.addListener(new Listener() {
                         @Override
                         public void connected(Connection connection) {
                             super.connected(connection);
                             clientsArray.add(connection.getID());
-                            System.out.println("Client connected : " + connection.getID());
                         }
 
                         @Override
                         public void disconnected(Connection connection) {
                             super.disconnected(connection);
                             clientsArray.removeValue(connection.getID(), false);
-                            System.out.println("Client disconnected : " + connection.getID());
                         }
 
                         @Override
                         public void received(Connection connection, Object object) {
                             super.received(connection, object);
                             if (object instanceof byte[]) {
-                                Gdx.app.postRunnable(() -> {
-                                    System.out.println("ggggg");
-                                    byte[] pixelData = (byte[]) (object);
-                                    chunk[pixelData[0]] = true;
-                                    System.out.println(Arrays.toString(pixelData));
-                                    ///System.arraycopy(pixelData, 1, image, pixelData[0] * 184320 + 1, pixelData.length - 1);
-                                    System.arraycopy(pixelData, 1, image, pixelData[0] * 184320, pixelData.length - 1);
-                                    //System.arraycopy(pixelData, 1, image, pixelData[0] * 184320, pixelData.length - 1);
-                                    boolean is = false;
-                                    for (boolean b : chunk) {
-                                        if (!b) {
-                                            is = true;
-                                            break;
+                                if (connection.getID() != clientsArray.get(clientsArray.size - 1)) {
+                                    server.sendToTCP(connection.getID() + 1, object);
+                                } else {
+                                    Gdx.app.postRunnable(() -> {
+                                        byte[] pixelData = (byte[]) (object);
+                                        chunk[pixelData[0]] = true;
+                                        System.out.println(Arrays.toString(pixelData));
+                                        System.arraycopy(pixelData, 1, image, pixelData[0] * Config.bytePackegeSize, pixelData.length - 1);
+                                        boolean is = false;
+                                        for (boolean b : chunk) {
+                                            if (!b) {
+                                                is = true;
+                                                break;
+                                            }
                                         }
-                                    }
-                                    if (!is) {
-                                        Arrays.fill(chunk, false);
-                                        System.out.println(image[0] + "  " + image[1]);
-                                        System.out.println(image[184320] + "  " + image[184321]);
-                                        System.out.println("ttttt");
-                                        for (int i = 0; i < 50; i++) {
-                                            System.out.print(image[i] + "  ");
+                                        if (!is) {
+                                            Arrays.fill(chunk, false);
+                                            Pixmap pixmap = new Pixmap(1280, 720, Pixmap.Format.RGBA8888);
+                                            ByteBuffer pixels = pixmap.getPixels();
+                                            pixels.clear();
+                                            pixels.put(image);
+                                            pixels.position(0);
+
+                                            texture = new Texture(pixmap);
+                                            //send.setVisible(true);
                                         }
-                                        System.out.println();
-                                        for (int i = 184320; i < 184320 + 50; i++) {
-                                            System.out.print(image[i] + "   ");
-                                        }
-                                        Pixmap pixmap = new Pixmap(1280, 720, Pixmap.Format.RGBA8888);
-                                        ByteBuffer pixels = pixmap.getPixels();
-                                        pixels.clear();
-                                        pixels.put(image);
-                                        pixels.position(0);
-
-                                        texture = new Texture(pixmap);
-                                        //pixmap.dispose();
-                                        ////texture.draw(pixmap, 0, 0);
-                                    }
-                                    /*Pixmap pixmap = new Pixmap(1280, 720 / 20, Pixmap.Format.RGBA8888);
-                                    ByteBuffer pixels = pixmap.getPixels();
-                                    pixels.clear();
-                                    pixels.put(pixelData, 1, pixelData.length - 1);
-                                    pixels.position(0);
-
-                                    //texture = new Texture(pixmap);
-                                    if (!texture.getTextureData().isPrepared()) {
-                                        texture.getTextureData().prepare();
-                                    }
-                                    Pixmap map = texture.getTextureData().consumePixmap();
-                                    System.out.println(map.isDisposed());
-                                    map.drawPixmap(pixmap, 0, pixelData[0] * 36);
-                                    texture.draw(map, 0, 0);
-                                    */
-                                    /////////////texture.draw(pixmap, 0, pixelData[0] * 36);
-                                    //pixmap.dispose();
-                                    /*
-                                    byte[] array = (byte[]) (object);
-                                    System.out.println(Arrays.toString(array));
-                                    if (!texture.getTextureData().isPrepared()) {
-                                        texture.getTextureData().prepare();
-                                    }
-                                    Pixmap pp = texture.getTextureData().consumePixmap();
-                                    System.out.println(array.length);
-
-                                    Pixmap pixmap = new Pixmap(array, 0, array.length);
-                                    //pixmap.setColor(1,1,1,1);
-                                    //pixmap.fill();
-
-                                    //pixmap.getPixels().put(array, 0, array.length - 1);
-
-                                    pp.drawPixmap(pixmap, 0, 0);
-                                    texture = new Texture(pixmap);
-                                    pixmap.dispose();
-
-                                    */
-                                });
+                                    });
+                                }
+                            } else if (object instanceof String) {
+                                String msg = (String) object;
+                                if (connection.getID() != clientsArray.get(clientsArray.size - 1)) {
+                                    server.sendToTCP(connection.getID() + 1, "start" + msg);
+                                } else
+                                    receivedMsg.setText(msg);
                             }
-                            if (object instanceof int[][]) {
-                                Gdx.app.postRunnable(() -> {
-                                    int[][] array = (int[][]) (object);
-
-                                    if (!texture.getTextureData().isPrepared()) {
-                                        texture.getTextureData().prepare();
-                                    }
-                                    Pixmap pp = texture.getTextureData().consumePixmap();
-
-                                    Pixmap pixmap = new Pixmap(1280, 720, Pixmap.Format.RGB888);
-                                    pixmap.setColor(1, 1, 1, 1);
-                                    pixmap.fill();
-                                    for (int i = 0; i < array.length; i++) {
-                                        for (int j = 0; j < array[i].length; j++) {
-                                            pixmap.drawPixel(i, j, array[i][j]);
-                                            System.out.println(i + " " + j + " " + pixmap.getPixel(i, j));
-                                        }
-                                    }
-                                    System.out.println(pp.getWidth() + "  " + pp.getHeight());
-                                    pp.drawPixmap(pixmap, 0, 0);
-                                    texture = new Texture(pixmap);
-                                    pixmap.dispose();
-                                    //pp.dispose();
-                                    //ServerScreen.this.pixmap.drawPixmap(pixmap, 0,0);
-                                    //texture.draw(ServerScreen.this.pixmap, 0, 0);
-                                    //pixmap.dispose();
-                                    //ServerScreen.this.pixmap.dispose();
-                                });
-                            }
-                            if (object instanceof Message) {
-                                Gdx.app.postRunnable(() -> {
-                                    Message message = (Message) (object);
-                                    System.out.println(Arrays.toString(message.getBytes()));
-                                    System.out.println(message.getBytes().length);
-                                    Pixmap pixmap = new Pixmap(1280, 60, Pixmap.Format.RGB888);
-                                    //pixmap.getPixels().put(message.getBytes());
-                                    System.out.println();
-                                    pixmap.setColor(0, 1, 0, 1);
-                                    pixmap.fill();
-
-                                    System.out.println(pixmap.getPixel(0, 0));
-                                    //texture.getTextureData().prepare();
-                                    texture = new Texture(pixmap);
-                                    pixmap.dispose();
-                                    //texture = new Texture(pixmap);
-                                    //texture = new Texture(new Pixmap(message.getBytes(), 0, message.getBytes().length));
-                                    //pixmap.getPixels().put(message.getBytes(), 1, message.getBytes().length - 1);
-                                    //pixmap.setColor(Color.GREEN);
-                                    //pixmap.fillCircle(100, 100, 100);
-                                    //texture.draw(pixmap, 0, 0);
-                                    //System.out.println("Client : " + connection.getID() + " sended : byte array" + Arrays.toString(((Message) object).getBytes()));
-                                });
-                            } else if (object instanceof Click) {
-
-                                Gdx.app.postRunnable(() -> {
-                                    Click click = (Click) (object);
-                                    pixmap.setColor(Color.BLACK);
-                                    pixmap.fillCircle((int) (click.pos.x), (int) (click.pos.y), 10);
-                                    texture.draw(pixmap, 0, 0);
-                                });
-                            }
-                            //System.out.println("Client : " + connection.getID() + " sended : " + object.toString());
                         }
 
                         @Override
@@ -320,56 +247,6 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
                 }
             }
         }).start();
-        /*client = new Client(231000, 231000);
-        client.getKryo().register(Message.class);
-        client.getKryo().register(String.class);
-        client.getKryo().register(byte[].class);
-
-        client.getKryo().register(Click.class);
-        client.getKryo().register(Vector2.class);
-        client.getKryo().register(float.class);
-        client.getKryo().register(float.class);
-         */
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                client.start();
-                try {
-                    client.connect(5000, ip, 5555, 6666);
-                } catch (IOException e) {
-                    client.close();
-                    e.printStackTrace();
-                }
-                client.addListener(new Listener() {
-                    @Override
-                    public void connected(Connection connection) {
-                        super.connected(connection);
-                        System.out.println("Client connected");
-                    }
-
-                    @Override
-                    public void disconnected(Connection connection) {
-                        super.disconnected(connection);
-                        System.out.println("Client disconnected");
-                    }
-
-                    @Override
-                    public void received(Connection connection, Object object) {
-                        super.received(connection, object);
-                        if (object instanceof String) {
-                            String s = (String) object;
-
-                        }
-                        System.out.println("Server" + " sended : " + object.toString());
-                    }
-
-                    @Override
-                    public void idle(Connection connection) {
-                        super.idle(connection);
-                    }
-                });
-            }
-        }).start();
     }
 
     @Override
@@ -378,7 +255,10 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
         ScreenUtils.clear(1, 1, 1, 1);
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
-        batch.draw(textureUser, 0, 0);
+        if (!send.isVisible())
+            batch.draw(texture, 0, 0, 1280, 720);
+        else
+            batch.draw(textureUser, 0, 0, 1280, 720);
         batch.end();
         stage.act();
         stage.draw();
@@ -408,14 +288,8 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
     public void dispose() {
         batch.dispose();
         server.close();
-        client.close();
         try {
             server.dispose();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            client.dispose();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -423,17 +297,21 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
 
     @Override
     public boolean touchDown(float x, float y, int pointer, int button) {
-        pixmapUser.setColor(Color.BLACK);
-        pixmapUser.fillCircle((int) (x), (int) (y), 10);
-        textureUser.draw(pixmapUser, 0, 0);
+        if (y > Config.Y1 && y < Config.Y2 && x < Config.X2 && x > Config.X1) {
+            pixmapUser.setColor(Color.BLACK);
+            pixmapUser.fillCircle((int) (x), (int) (y), 10);
+            textureUser.draw(pixmapUser, 0, 0);
+        }
         return false;
     }
 
     @Override
     public boolean tap(float x, float y, int count, int button) {
-        pixmapUser.setColor(Color.BLACK);
-        pixmapUser.fillCircle((int) (x), (int) (y), 10);
-        textureUser.draw(pixmapUser, 0, 0);
+        if (y > Config.Y1 && y < Config.Y2 && x < Config.X2 && x > Config.X1) {
+            pixmapUser.setColor(Color.BLACK);
+            pixmapUser.fillCircle((int) (x), (int) (y), 10);
+            textureUser.draw(pixmapUser, 0, 0);
+        }
         return false;
     }
 
@@ -449,9 +327,11 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
 
     @Override
     public boolean pan(float x, float y, float deltaX, float deltaY) {
-        pixmapUser.setColor(Color.BLACK);
-        pixmapUser.fillCircle((int) (x), (int) (y), 10);
-        textureUser.draw(pixmapUser, 0, 0);
+        if (y > Config.Y1 && y < Config.Y2 && x < Config.X2 && x > Config.X1) {
+            pixmapUser.setColor(Color.BLACK);
+            pixmapUser.fillCircle((int) (x), (int) (y), 10);
+            textureUser.draw(pixmapUser, 0, 0);
+        }
         return false;
     }
 

@@ -3,12 +3,15 @@ package com.tastygamesstudio.phone;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.Timer;
@@ -20,111 +23,73 @@ import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class ClientScreen implements Screen, GestureDetector.GestureListener {
     private final String ip;
     byte[] bytes;
-    Texture texture;
+    Texture textureUser, texture;
     byte[] pixelData;
+    boolean isStarted;
     SpriteBatch batch;
+    boolean[] chunk = new boolean[Config.bytePackageCount];
+    byte[] image;
     Client client;
-    Pixmap pixmap;
+    Pixmap pixmapUser, pixmap;
     ImageButton send;
     Stage stage;
-    double time;
+    Label receivedDesc;
     private Phone app;
     byte i;
+    FreeTypeFontGenerator font;
     Viewport viewport;
     OrthographicCamera camera;
     Skin skin;
+    TextField desc;
 
     public ClientScreen(Phone app, String ip) {
-
         this.app = app;
         this.ip = ip;
     }
 
-    class sendThread extends Thread {
-        byte[] array;
-
-        public sendThread(byte[] array) {
-            this.array = array;
-        }
-
-        @Override
-        public void run() {
-            super.run();
-            client.sendTCP(array);
-        }
-
-        public void setArray(byte[] array) {
-            this.array = array;
-        }
-    }
-
     @Override
     public void show() {
-
-        viewport = new StretchViewport(1280, 720);
+        font = new FreeTypeFontGenerator(Gdx.files.internal("Red October.ttf"));
+        FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        parameter.size = 15;
+        image = new byte[Config.imageSize];
+        viewport = new StretchViewport(Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y);
         stage = new Stage(viewport);
         stage.setDebugAll(true);
         skin = new Skin(Gdx.files.internal("skin/skin-composer-ui.json"));
+        receivedDesc = new Label("", skin, "default");
+        receivedDesc.setPosition(640 - receivedDesc.getWidth() / 2, 680);
+        //receivedDesc.getStyle().font =  font.generateFont(parameter);
+        stage.addActor(receivedDesc);
         send = new ImageButton(skin, "default");
         send.setBounds(1100, 40, 100, 100);
+        send.setVisible(false);
         send.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 super.clicked(event, x, y);
-                // if (pixelData == null) {
+                send.remove();
+                receivedDesc.remove();
                 pixelData = ScreenUtils.getFrameBufferPixels(0, 0, 1280, 720, true);
-               ////// System.out.println("GGG" + Arrays.toString(pixelData));
-               ////// Pixmap pixmap = new Pixmap(1280, 720, Pixmap.Format.RGBA8888);
-               ////// ByteBuffer pixels = pixmap.getPixels();
-               ////// pixels.clear();
-               ////// pixels.put(pixelData);
-               ////// pixels.position(0);
-                // }
-               /////// //ScreenUtils.clear(1, 1, 1, 1);
-
-                /*Pixmap pixmap = new Pixmap(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), Pixmap.Format.RGBA8888);
-                ByteBuffer pixels = pixmap.getPixels();
-                pixels.clear();
-                pixels.put(pixelData);
-                pixels.position(0);
-
-                 */
-
-                // Pixmap pixmap = new Pixmap(pixelData, 0, pixelData.length);
-
-               ////////// texture.draw(pixmap, 0, 0);
-                bytes = new byte[184321];
-                //    bytes[0] = 0;
-                //    System.arraycopy(pixelData, 0, bytes, 1, bytes.length - 1);
-                //    System.out.println(bytes[0]);
-                //    System.out.println(Arrays.toString(bytes));
-              //////////////////  sendThread t = new sendThread(bytes);
-                //    t.start();
-               /* Thread t = new Thread(() {
-                        client.sendTCP(bytes)
-                });
-                t.start();
-
-                */
+                //bytes = new byte[184321];
                 i = 0;
+                isStarted = false;
                 new Timer().scheduleTask(new Timer.Task() {
                     @Override
                     public void run() {
-                        bytes = null;
-                        bytes = new byte[184321];
-                        //Arrays.fill(bytes, (byte) 0);
+                        //bytes = null;
+                        //bytes = new byte[Config.bytePackegeSize + 1];
                         bytes[0] = i;
-                        System.arraycopy(pixelData, 184320 * bytes[0], bytes, 1, bytes.length - 1);
-                        System.out.println(bytes[0]);
-                       //////// System.out.println(Arrays.toString(bytes));
+                        System.arraycopy(pixelData, Config.bytePackegeSize * bytes[0], bytes, 1, bytes.length - 1);
                         try {
                             client.sendTCP(bytes);
-                        }
-                        catch (KryoException e){
+                        } catch (KryoException e) {
                             try {
                                 client.reconnect();
                                 client.sendTCP(bytes);
@@ -132,147 +97,29 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
                                 ioException.printStackTrace();
                             }
                         }
-                        //t.setArray(bytes);
-                        //t.start();
                         i++;
                     }
-                }, 3 * 1, 1, 19);
-
-                // byte[] bytes1 = new byte[184321];
-                //    Arrays.fill(bytes, (byte) 0);
-                //    bytes[0] = 1;
-                //    System.arraycopy(pixelData, 184320, bytes, 1, bytes.length - 1);
-                //    System.out.println(bytes[0]);
-                //    System.out.println(Arrays.toString(bytes));
-                //    t.setArray(bytes);
-                //    t.start();
-                // new Thread(() -> client.sendTCP(bytes)).start();
-
-                //     Arrays.fill(bytes, (byte) 0);
-                //     bytes[0] = 2;
-                //     System.arraycopy(pixelData, 184320 * 2, bytes, 1, bytes.length - 1);
-                //     System.out.println(bytes[0]);
-                //     System.out.println(Arrays.toString(bytes));
-                //     t.setArray(bytes);
-                //     t.start();
-                // new Thread(() -> client.sendTCP(bytes)).start();
-
-
-                // byte[] bytes2 = new byte[184321];
-                // bytes2[0] = 2;
-                // System.arraycopy(pixelData, 184320 * 2, bytes2, 1, bytes2.length - 1);
-                // System.out.println(bytes2[0]);
-                // new Thread(() -> client.sendTCP(bytes2)).start();
-
-               /* i = 0;
-                new Timer().scheduleTask(new Timer.Task() {
-                    @Override
-                    public void run() {
-                        byte[] bytes2 = new byte[184321];
-                        bytes2[0] = i;
-                        System.arraycopy(pixelData, i * 184320, bytes2, 1, bytes2.length - 1);
-                        client.sendTCP(bytes2);
-                        i++;
-                    }
-                }, 20 * 0.02f, 0.02f);
-
-
-                */
-
-                //bytes[0] = 0;
-
-               /* new Timer().scheduleTask(new Timer.Task() {
-                    @Override
-                    public void run() {
-                        bytes[0] = i[0];
-                        System.arraycopy(pixelData, i[0] * 184320, bytes, 1, bytes.length - 1);
-                        System.out.println(Arrays.toString(bytes));
-                        new Thread(() -> client.sendTCP(bytes));
-                        i[0]++;
-                    }
-                }, 0.2f * 20, 0.2f);
-                for (i[0] = 0; i[0] < 20; i[0]++) {
-                    bytes[0] = i[0];
-                    System.arraycopy(pixelData, i[0] * 184320, bytes, 1, bytes.length - 1);
-                    System.out.println(Arrays.toString(bytes));
-                    new Thread(() -> client.sendTCP(bytes));
-                }
-
-                */
-
-                /////System.arraycopy(pixelData, 0, bytes, 1, bytes.length - 1);
-                /////System.out.println(bytes.length);
-                /////System.out.println(Arrays.toString(bytes));
-                /////System.out.println(pixelData.length);
-
-                /////new Thread(() -> client.sendTCP(bytes)).start();
-
-                /*if (!texture.getTextureData().isPrepared()) {
-                    texture.getTextureData().prepare();
-                }
-                Pixmap pixmap = texture.getTextureData().consumePixmap();
-                ByteBuffer byteBuffer = pixmap.getPixels().asReadOnlyBuffer();
-                byte[] pixelDataByteArray = new byte[byteBuffer.remaining() / 12];
-                byteBuffer.get(pixelDataByteArray, 0, pixelDataByteArray.length - 1);
-                System.out.println(Arrays.toString(pixelDataByteArray));
-                int[][] array = new int[1280][60];
-                for (int i = 0; i < array.length; i++) {
-                    for (int j = 0; j < array[i].length; j++) {
-                        array[i][j] = pixmap.getPixel(i, j);
-                    }
-                }
-
-
-                ByteArrayOutputStream output;
-                byte[] a;
-                try {
-                    PixmapIO.PNG writer = new PixmapIO.PNG(pixmap.getWidth() * pixmap.getHeight() * 4);
-                    try {
-                        writer.setFlipY(false);
-                        writer.setCompression(Deflater.BEST_COMPRESSION);
-                        output = new ByteArrayOutputStream();
-                        writer.write(output, pixmap);
-                    } finally {
-                        writer.dispose();
-                    }
-                    a = output.toByteArray();
-
-                } catch (IOException ex) {
-                    throw new GdxRuntimeException("Error");
-                }
-                System.out.println(Arrays.toString(a));
-                System.out.println(a.length + "dddd");
-                //new Thread(() -> client.sendTCP(array)).start();
-                new Thread(() -> client.sendTCP(pixelDataByteArray)).start();
-
-
-                */
-                //new Thread(() -> client.sendTCP(new Message(pixelDataByteArray, ""))).start();
-               /* ByteBuffer byteBuffer = pixmap.getPixels();
-                byte[] bytes = new byte[byteBuffer.remaining() / 12 + 1];
-                bytes[0] = 1;
-                byteBuffer.get(bytes, 1, bytes.length - 1);
-                byteBuffer.clear();
-                System.out.println(Arrays.toString(bytes));
-                System.out.println(bytes.length);
-
-                */
-                //new Thread(() -> client.sendTCP(new Message(bytes, ""))).start();
+                }, Register.TIME_DELTA, Register.TIME_DELTA, Config.bytePackageCount - 1);
             }
         });
         stage.addActor(send);
-        camera = new OrthographicCamera(1280, 720);
-        camera.setToOrtho(false, 1280, 720);
-        pixmap = new Pixmap(1280, 720, Pixmap.Format.RGB888);
-        pixmap.setColor(1, 1, 1, 1);
-        pixmap.fill();
-        // pixmap.setColor(1,1,0,1);
-        // pixmap.fillRectangle(0 ,0,100, 100);
-        texture = new Texture(pixmap);
+
+        desc = new TextField("", skin, "default");
+        desc.setSize(500, desc.getHeight());
+        desc.setPosition(640 - desc.getWidth() / 2, 690);
+        camera = new OrthographicCamera(Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y);
+        camera.setToOrtho(false, Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y);
+        pixmapUser = new Pixmap(Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y, Pixmap.Format.RGB888);
+        pixmapUser.setColor(1, 1, 1, 1);
+        pixmapUser.fill();
+        pixmapUser.setColor(1, 1, 0, 0.1f);
+        pixmapUser.fillRectangle(Config.X1, Config.Y1, Config.SIZE_X, Config.SIZE_Y);
+        textureUser = new Texture(pixmapUser);
         InputMultiplexer inputMultiplexer = new InputMultiplexer(new GestureDetector(this), stage);
         Gdx.input.setInputProcessor(inputMultiplexer);
-        client = new Client(184400, 184400);
-        client.getKryo().register(Message.class);
+        client = new Client(Register.BUFFER_SIZE, Register.BUFFER_SIZE);
+        Register.register(client.getKryo());
+        /*client.getKryo().register(Message.class);
         client.getKryo().register(Click.class);
         client.getKryo().register(int[].class);
         client.getKryo().register(int[][].class);
@@ -281,12 +128,14 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
         client.getKryo().register(float.class);
         client.getKryo().register(String.class);
         client.getKryo().register(byte[].class);
+
+         */
         new Thread(new Runnable() {
             @Override
             public void run() {
                 client.start();
                 try {
-                    client.connect(5000, ip, 5555, 6666);
+                    client.connect(Register.TIMEOUT, ip, Register.TCP_PORT, Register.UDP_PORT);
                 } catch (IOException e) {
                     client.close();
                     e.printStackTrace();
@@ -295,19 +144,100 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
                     @Override
                     public void connected(Connection connection) {
                         super.connected(connection);
-                        System.out.println("Client connected");
                     }
 
                     @Override
                     public void disconnected(Connection connection) {
                         super.disconnected(connection);
-                        System.out.println("Client disconnected");
                     }
 
                     @Override
                     public void received(Connection connection, Object object) {
                         super.received(connection, object);
-                        System.out.println("Server" + " sended : " + object.toString());
+                        if (object instanceof String) {
+                            String s = (String) object;
+                            if (s.startsWith("start")) {
+                                isStarted = true;
+                                //stage.addActor(desc);
+                                new Timer().scheduleTask(new Timer.Task() {
+                                    @Override
+                                    public void run() {
+                                        receivedDesc.remove();
+                                        desc.remove();
+                                    }
+                                }, 20);
+                                new Timer().scheduleTask(new Timer.Task() {
+                                    @Override
+                                    public void run() {
+                                        pixelData = ScreenUtils.getFrameBufferPixels(0, 0, 1280, 720, true);
+                                        bytes = new byte[Config.bytePackegeSize + 1];
+                                        i = 0;
+                                        //   if (connection.getID() % 2 == 0) {
+                                        //      stage.addActor(desc);
+                                        ///      client.sendTCP(desc.getText());
+                                        ///  } else {
+                                        new Timer().scheduleTask(new Timer.Task() {
+                                            @Override
+                                            public void run() {
+                                                bytes = null;
+                                                bytes = new byte[Config.bytePackegeSize + 1];
+                                                bytes[0] = i;
+                                                System.arraycopy(pixelData, Config.bytePackegeSize * bytes[0], bytes, 1, bytes.length - 1);
+                                                try {
+                                                    client.sendTCP(bytes);
+                                                } catch (KryoException e) {
+                                                    try {
+                                                        client.reconnect();
+                                                        client.sendTCP(bytes);
+                                                    } catch (IOException ioException) {
+                                                        ioException.printStackTrace();
+                                                    }
+                                                }
+                                                i++;
+                                                //  if (i == 19)
+                                                //client.sendTCP(desc.getText());
+                                            }
+                                        }, Register.TIME_DELTA, Register.TIME_DELTA, Config.bytePackageCount - 1);
+                                        //  }
+                                    }
+                                }, 30);
+                                //stage.addActor(send);
+                                stage.addActor(receivedDesc);
+                                receivedDesc.setText(s.substring(5));
+                            }
+                            //receivedDesc.setText(s);
+                        } else if (object instanceof byte[]) {
+                            Gdx.app.postRunnable(() -> {
+                                System.out.println("ggggg");
+                                byte[] pixelData = (byte[]) (object);
+                                chunk[pixelData[0]] = true;
+                                System.out.println(Arrays.toString(pixelData));
+                                System.arraycopy(pixelData, 1, image, pixelData[0] * Config.bytePackegeSize, pixelData.length - 1);
+                                boolean is = false;
+                                for (boolean b : chunk) {
+                                    if (!b) {
+                                        is = true;
+                                        break;
+                                    }
+                                }
+                                if (!is) {
+                                    Arrays.fill(chunk, false);
+                                    Pixmap pixmap = new Pixmap(1280, 720, Pixmap.Format.RGBA8888);
+                                    ByteBuffer pixels = pixmap.getPixels();
+                                    pixels.clear();
+                                    pixels.put(image);
+                                    pixels.position(0);
+                                    stage.addActor(desc);
+                                    new Timer().scheduleTask(new Timer.Task() {
+                                        @Override
+                                        public void run() {
+                                            client.sendTCP(desc.getText());
+                                        }
+                                    }, 20);
+                                    texture = new Texture(pixmap);
+                                }
+                            });
+                        }
                     }
 
                     @Override
@@ -325,16 +255,15 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
     public void render(float delta) {
         camera.update();
         ScreenUtils.clear(1, 1, 1, 1);
-        time += delta;
-        if (time > 1) {
-            new Thread(() -> {
-                //client.sendTCP("Hello from client(client)  " + TimeUtils.millis());
-                time = 0;
-            }).start();
-        }
+
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
-        batch.draw(texture, 0, 0);
+        if (texture != null)
+            batch.draw(texture, 0, 0, 1280, 720);
+            //if (!send.isVisible() && texture != null)
+            ///  batch.draw(texture, 0, 0, 1280, 720);
+        else
+            batch.draw(textureUser, 0, 0, 1280, 720);
         batch.end();
         stage.act();
         stage.draw();
@@ -364,6 +293,10 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
     public void dispose() {
         batch.dispose();
         client.close();
+        texture.dispose();
+        textureUser.dispose();
+        pixmapUser.dispose();
+        pixmap.dispose();
         try {
             client.dispose();
         } catch (IOException e) {
@@ -373,23 +306,22 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
 
     @Override
     public boolean touchDown(float x, float y, int pointer, int button) {
-        pixmap.setColor(Color.BLACK);
-        pixmap.fillCircle((int) (x), (int) (y), 10);
-        //pixmap.drawLine(1280 - (int) x, (int) y, (int) (1280 - x + deltaX), (int) (y + deltaY));
-        //texture.dispose();
-        texture.draw(pixmap, 0, 0);
-        //texture = new Texture(pixmap);
+        if (isStarted && y > Config.Y1 && y < Config.Y2 && x < Config.X2 && x > Config.X1) {
+            pixmapUser.setColor(Color.BLACK);
+            pixmapUser.fillCircle((int) (x), (int) (y), 10);
+            textureUser.draw(pixmapUser, 0, 0);
+        }
         return false;
+
     }
 
     @Override
     public boolean tap(float x, float y, int count, int button) {
-        pixmap.setColor(Color.BLACK);
-        pixmap.fillCircle((int) (x), (int) (y), 10);
-        //pixmap.drawLine(1280 - (int) x, (int) y, (int) (1280 - x + deltaX), (int) (y + deltaY));
-        //texture.dispose();
-        texture.draw(pixmap, 0, 0);
-        //texture = new Texture(pixmap);
+        if (isStarted && y > Config.Y1 && y < Config.Y2 && x < Config.X2 && x > Config.X1) {
+            pixmapUser.setColor(Color.BLACK);
+            pixmapUser.fillCircle((int) (x), (int) (y), 10);
+            textureUser.draw(pixmapUser, 0, 0);
+        }
         return false;
     }
 
@@ -405,16 +337,11 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
 
     @Override
     public boolean pan(float x, float y, float deltaX, float deltaY) {
-        pixmap.setColor(Color.BLACK);
-        pixmap.fillCircle((int) (x), (int) (y), 10);
-        pixmap.setColor(Color.GREEN);
-        pixmap.fillRectangle(0, 0, 200, 40);
-        //pixmap.drawLine(1280 - (int) x, (int) y, (int) (1280 - x + deltaX), (int) (y + deltaY));
-        //texture.dispose();
-        texture.draw(pixmap, 0, 0);
-
-
-        //texture = new Texture(pixmap);
+        if (isStarted && y > Config.Y1 && y < Config.Y2 && x < Config.X2 && x > Config.X1) {
+            pixmapUser.setColor(Color.BLACK);
+            pixmapUser.fillCircle((int) (x), (int) (y), 10);
+            textureUser.draw(pixmapUser, 0, 0);
+        }
         return false;
     }
 

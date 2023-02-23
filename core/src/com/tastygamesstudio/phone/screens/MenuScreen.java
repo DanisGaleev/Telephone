@@ -2,7 +2,6 @@ package com.tastygamesstudio.phone.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.assets.loaders.AssetLoader;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
@@ -11,12 +10,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
-import com.sun.corba.se.impl.oa.toa.TOA;
 import com.tastygamesstudio.phone.ClientScreen;
 import com.tastygamesstudio.phone.Phone;
 import com.tastygamesstudio.phone.ServerScreen;
 
-import java.net.InetSocketAddress;
 import java.util.Arrays;
 
 public class MenuScreen implements Screen {
