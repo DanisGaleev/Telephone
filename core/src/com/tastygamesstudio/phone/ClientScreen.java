@@ -15,7 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.Timer;
-import com.badlogic.gdx.utils.viewport.StretchViewport;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryonet.Client;
@@ -58,33 +58,29 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
         font = new FreeTypeFontGenerator(Gdx.files.internal("Red October.ttf"));
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
         parameter.size = 15;
+        camera = new OrthographicCamera();
+        camera.setToOrtho(false, Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
         image = new byte[Config.imageSize];
-        viewport = new StretchViewport(Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y);
+        viewport = new ScreenViewport(camera);
         stage = new Stage(viewport);
         stage.setDebugAll(true);
         skin = new Skin(Gdx.files.internal("skin/skin-composer-ui.json"));
         receivedDesc = new Label("", skin, "default");
         receivedDesc.setPosition(640 - receivedDesc.getWidth() / 2, 680);
-        //receivedDesc.getStyle().font =  font.generateFont(parameter);
         stage.addActor(receivedDesc);
         send = new ImageButton(skin, "default");
         send.setBounds(1100, 40, 100, 100);
-        send.setVisible(false);
         send.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 super.clicked(event, x, y);
-                send.remove();
-                receivedDesc.remove();
-                pixelData = ScreenUtils.getFrameBufferPixels(0, 0, 1280, 720, true);
-                //bytes = new byte[184321];
+                send.setVisible(false);
+                pixelData = ScreenUtils.getFrameBufferPixels(Config.X1, Config.Y1, Config.SIZE_X, Config.SIZE_Y, true);
                 i = 0;
                 isStarted = false;
                 new Timer().scheduleTask(new Timer.Task() {
                     @Override
                     public void run() {
-                        //bytes = null;
-                        //bytes = new byte[Config.bytePackegeSize + 1];
                         bytes[0] = i;
                         System.arraycopy(pixelData, Config.bytePackegeSize * bytes[0], bytes, 1, bytes.length - 1);
                         try {
@@ -107,9 +103,8 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
         desc = new TextField("", skin, "default");
         desc.setSize(500, desc.getHeight());
         desc.setPosition(640 - desc.getWidth() / 2, 690);
-        camera = new OrthographicCamera(Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y);
-        camera.setToOrtho(false, Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y);
-        pixmapUser = new Pixmap(Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y, Pixmap.Format.RGB888);
+        //camera.setToOrtho(false, Config.SCREEN_SIZE_X, Config.SCREEN_SIZE_Y);
+        pixmapUser = new Pixmap(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), Pixmap.Format.RGB888);
         pixmapUser.setColor(1, 1, 1, 1);
         pixmapUser.fill();
         pixmapUser.setColor(1, 1, 0, 0.1f);
@@ -119,17 +114,6 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
         Gdx.input.setInputProcessor(inputMultiplexer);
         client = new Client(Register.BUFFER_SIZE, Register.BUFFER_SIZE);
         Register.register(client.getKryo());
-        /*client.getKryo().register(Message.class);
-        client.getKryo().register(Click.class);
-        client.getKryo().register(int[].class);
-        client.getKryo().register(int[][].class);
-        client.getKryo().register(Vector2.class);
-        client.getKryo().register(float.class);
-        client.getKryo().register(float.class);
-        client.getKryo().register(String.class);
-        client.getKryo().register(byte[].class);
-
-         */
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -158,7 +142,6 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
                             String s = (String) object;
                             if (s.startsWith("start")) {
                                 isStarted = true;
-                                //stage.addActor(desc);
                                 new Timer().scheduleTask(new Timer.Task() {
                                     @Override
                                     public void run() {
@@ -169,13 +152,9 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
                                 new Timer().scheduleTask(new Timer.Task() {
                                     @Override
                                     public void run() {
-                                        pixelData = ScreenUtils.getFrameBufferPixels(0, 0, 1280, 720, true);
+                                        pixelData = ScreenUtils.getFrameBufferPixels(Config.X1, Gdx.graphics.getHeight() - Config.Y1 - Config.SIZE_Y, Config.SIZE_X, Config.SIZE_Y, true);
                                         bytes = new byte[Config.bytePackegeSize + 1];
                                         i = 0;
-                                        //   if (connection.getID() % 2 == 0) {
-                                        //      stage.addActor(desc);
-                                        ///      client.sendTCP(desc.getText());
-                                        ///  } else {
                                         new Timer().scheduleTask(new Timer.Task() {
                                             @Override
                                             public void run() {
@@ -194,35 +173,30 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
                                                     }
                                                 }
                                                 i++;
-                                                //  if (i == 19)
-                                                //client.sendTCP(desc.getText());
+
                                             }
                                         }, Register.TIME_DELTA, Register.TIME_DELTA, Config.bytePackageCount - 1);
-                                        //  }
                                     }
                                 }, 30);
-                                //stage.addActor(send);
                                 stage.addActor(receivedDesc);
                                 receivedDesc.setText(s.substring(5));
                             }
-                            //receivedDesc.setText(s);
                         } else if (object instanceof byte[]) {
                             Gdx.app.postRunnable(() -> {
-                                System.out.println("ggggg");
                                 byte[] pixelData = (byte[]) (object);
                                 chunk[pixelData[0]] = true;
-                                System.out.println(Arrays.toString(pixelData));
+                                System.out.println(pixelData[0]);
                                 System.arraycopy(pixelData, 1, image, pixelData[0] * Config.bytePackegeSize, pixelData.length - 1);
-                                boolean is = false;
+                                boolean isAllPackageReceived = false;
                                 for (boolean b : chunk) {
                                     if (!b) {
-                                        is = true;
+                                        isAllPackageReceived = true;
                                         break;
                                     }
                                 }
-                                if (!is) {
+                                if (!isAllPackageReceived) {
                                     Arrays.fill(chunk, false);
-                                    Pixmap pixmap = new Pixmap(1280, 720, Pixmap.Format.RGBA8888);
+                                    Pixmap pixmap = new Pixmap(Config.SIZE_X, Config.SIZE_Y, Pixmap.Format.RGBA8888);
                                     ByteBuffer pixels = pixmap.getPixels();
                                     pixels.clear();
                                     pixels.put(image);
@@ -258,12 +232,15 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
 
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
-        if (texture != null)
-            batch.draw(texture, 0, 0, 1280, 720);
-            //if (!send.isVisible() && texture != null)
-            ///  batch.draw(texture, 0, 0, 1280, 720);
-        else
-            batch.draw(textureUser, 0, 0, 1280, 720);
+        if (texture != null) {
+            System.out.println(texture.getWidth() + "  " + texture.getHeight());
+            batch.draw(texture, 40, 40);
+        }
+        else {
+            System.out.println(textureUser.getWidth() + "  " + textureUser.getHeight());
+
+            batch.draw(textureUser, 0, 0);
+        }
         batch.end();
         stage.act();
         stage.draw();

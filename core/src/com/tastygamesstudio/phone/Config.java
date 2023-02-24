@@ -9,7 +9,7 @@ public class Config {
     public static final int Y1 = 30;
     public static final int Y2 = 600;
     public static final int SIZE_Y = Y2 - Y1;
-    public static final int imageSize = 1280 * 720 * 4;
+    public static final int imageSize = SIZE_X * SIZE_Y * 4;
     public static final int bytePackageCount = 128;
     public static final int bytePackegeSize = imageSize / bytePackageCount;
 }
