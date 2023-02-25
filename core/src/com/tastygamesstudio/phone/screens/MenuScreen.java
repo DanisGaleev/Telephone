@@ -23,11 +23,6 @@ public class MenuScreen implements Screen {
     private Stage stage;
     private TextField name;
     private TextField serverIPField;
-    private Label serverIP;
-    private TextButton client;
-    private TextButton server;
-    private Viewport viewport;
-    private Skin skin;
     private SpriteBatch batch;
 
     public MenuScreen(final Phone app, String ip) {
@@ -38,11 +33,11 @@ public class MenuScreen implements Screen {
     @Override
     public void show() {
         batch = new SpriteBatch();
-        viewport = new StretchViewport(1280, 720);
+        Viewport viewport = new StretchViewport(1280, 720);
         stage = new Stage(viewport);
         stage.setDebugAll(true);
 
-        skin = new Skin(Gdx.files.internal("skin/skin-composer-ui.json"));
+        Skin skin = new Skin(Gdx.files.internal("skin/skin-composer-ui.json"));
 
         name = new TextField("defaultname", skin, "default");
         name.setBounds(490, 600, 300, 40);
@@ -52,11 +47,11 @@ public class MenuScreen implements Screen {
         serverIPField.setBounds(490, 500, 300, 40);
         stage.addActor(serverIPField);
 
-        serverIP = new Label(ip, skin, "default");
+        Label serverIP = new Label(ip, skin, "default");
         serverIP.setPosition(30, 690);
         stage.addActor(serverIP);
 
-        client = new TextButton("Start as client", skin, "default");
+        TextButton client = new TextButton("Start as client", skin, "default");
         client.setBounds(440, 250, 400, 70);
         client.addListener(new InputListener() {
             @Override
@@ -70,26 +65,27 @@ public class MenuScreen implements Screen {
                                     Integer.parseInt(ss[1]) >= 0 && Integer.parseInt(ss[1]) <= 255 &&
                                     Integer.parseInt(ss[2]) >= 0 && Integer.parseInt(ss[2]) <= 255 &&
                                     Integer.parseInt(ss[3]) >= 0 && Integer.parseInt(ss[3]) <= 255) {
-                                app.setScreen(new ClientScreen(app, serverIPField.getText()));
+                                app.setScreen(new ClientScreen(serverIPField.getText()));
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
                 } else {
+                    //here will be something if ip not correct
                 }
                 return super.touchDown(event, x, y, pointer, button);
             }
         });
         stage.addActor(client);
 
-        server = new TextButton("Start as server", skin, "default");
+        TextButton server = new TextButton("Start as server", skin, "default");
         server.setBounds(440, 160, 400, 70);
         server.addListener(new InputListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
                 if (!name.getText().equals(""))
-                    app.setScreen(new ServerScreen(app, ip));
+                    app.setScreen(new ServerScreen());
                 return super.touchDown(event, x, y, pointer, button);
             }
         });

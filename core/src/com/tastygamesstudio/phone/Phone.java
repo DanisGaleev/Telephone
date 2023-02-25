@@ -8,7 +8,7 @@ public class Phone extends Game {
     public static String ip;
 
     public Phone(String ip){
-        this.ip = ip;
+        Phone.ip = ip;
     }
 
     @Override

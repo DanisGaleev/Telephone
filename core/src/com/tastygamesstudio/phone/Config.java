@@ -1,8 +1,6 @@
 package com.tastygamesstudio.phone;
 
 public class Config {
-    public static final int SCREEN_SIZE_X = 1280;
-    public static final int SCREEN_SIZE_Y = 720;
     public static final int X1 = 20;
     public static final int X2 = 1100;
     public static final int SIZE_X = X2 - X1;

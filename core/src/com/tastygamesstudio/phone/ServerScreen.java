@@ -5,7 +5,6 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -30,36 +29,44 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class ServerScreen implements Screen, GestureDetector.GestureListener {
-    Label receivedMsg;
-    private final String ip;
-    Skin skin;
-    TextField desc;
-    Texture texture;
-    OrthographicCamera camera;
-    ImageButton send;
-    Viewport viewport;
-    Pixmap pixmap;
-    boolean[] chunk = new boolean[Config.bytePackageCount];
-    SpriteBatch batch;
-    byte[] pixelData;
-    byte[] bytes;
-    byte i;
-    private final Phone app;
-    Server server;
-    Stage stage;
-    byte[] image;
+    private OrthographicCamera camera;
+    private Stage stage;
+    private SpriteBatch batch;
+
+    private Label receivedMsg;
+    private TextField desc;
+    private ImageButton send;
+
+    private Server server;
     private Array<Integer> clientsArray;
 
-    Texture textureUser;
-    Pixmap pixmapUser;
+    private Texture texture;
+    private Texture textureUser;
+    private Pixmap pixmapUser;
 
-    public ServerScreen(Phone app, String ip) {
-        this.app = app;
-        this.ip = ip;
-    }
+    private final boolean[] chunk = new boolean[Config.bytePackageCount];
+    private byte[] pixelData;
+    private byte[] bytes;
+    private byte packegeNumber;
+    private byte[] image;
+
+    public ServerScreen() { }
 
     @Override
     public void show() {
+        image = new byte[Config.imageSize];
+        clientsArray = new Array<>();
+
+        camera = new OrthographicCamera();
+        camera.setToOrtho(false, Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
+        Viewport viewport = new ScreenViewport(camera);
+        stage = new Stage(viewport);
+        stage.setDebugAll(true);
+        batch = new SpriteBatch();
+        Skin skin = new Skin(Gdx.files.internal("skin/skin-composer-ui.json"));
+
+        InputMultiplexer inputMultiplexer = new InputMultiplexer(new GestureDetector(this), stage);
+        Gdx.input.setInputProcessor(inputMultiplexer);
 
         pixmapUser = new Pixmap(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), Pixmap.Format.RGB888);
         pixmapUser.setColor(1, 1, 1, 1);
@@ -68,61 +75,40 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
         pixmapUser.fillRectangle(Config.X1, Config.Y1, Config.SIZE_X, Config.SIZE_Y);
         textureUser = new Texture(pixmapUser);
 
-        skin = new Skin(Gdx.files.internal("skin/skin-composer-ui.json"));
         receivedMsg = new Label("", skin, "default");
-        receivedMsg.setPosition(640 - receivedMsg.getWidth() / 2, 680);
+        receivedMsg.setPosition(Gdx.graphics.getWidth() / 2 - receivedMsg.getWidth() / 2, 40);
+        stage.addActor(receivedMsg);
+
         desc = new TextField("", skin, "default");
         desc.setSize(500, desc.getHeight());
-        desc.setPosition(640 - desc.getWidth() / 2, 690);
-        image = new byte[Config.imageSize];
-        camera = new OrthographicCamera();
-        camera.setToOrtho(false, Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
-        viewport = new ScreenViewport(camera);
-        stage = new Stage(viewport);
-        stage.setDebugAll(true);
+        desc.setPosition(Gdx.graphics.getWidth() / 2 - desc.getWidth() / 2, 690);
         stage.addActor(desc);
-        stage.addActor(receivedMsg);
-        InputMultiplexer inputMultiplexer = new InputMultiplexer(new GestureDetector(this), stage);
+
         send = new ImageButton(skin, "default");
-        send.setBounds(1100, 40, 100, 100);
+        send.setBounds(1150, 40, 100, 100);
+        stage.addActor(send);
         send.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 super.clicked(event, x, y);
                 send.setVisible(false);
                 if ((clientsArray.size + 1) % 2 == 0) {
-                    pixelData = ScreenUtils.getFrameBufferPixels(Config.X1, Gdx.graphics.getHeight() - Config.Y1 - Config.SIZE_Y, Config.SIZE_X, Config.SIZE_Y, true);
-                    bytes = new byte[Config.bytePackegeSize + 1];
-                    i = 0;
-                    new Timer().scheduleTask(new Timer.Task() {
-                        @Override
-                        public void run() {
-                            bytes[0] = i;
-                            System.out.println(i + "  " + bytes[0] * Config.bytePackegeSize);
-                            System.arraycopy(pixelData, Config.bytePackegeSize * bytes[0], bytes, 1, bytes.length - 1);
-                            try {
-                                server.sendToTCP(clientsArray.get(0), bytes);
-                            } catch (KryoException e) {
-                                e.printStackTrace();
-                            }
-                            i++;
-                        }
-                    }, Register.TIME_DELTA, Register.TIME_DELTA, Config.bytePackageCount - 1);
-                    server.sendToTCP(clientsArray.get(0), "start");
+                    Gdx.app.log("MESSAGE", "send message(Pixmap) to server");
+                    sendPixmap();
+                    //server.sendToTCP(clientsArray.get(0), "start");
                 } else {
-                    server.sendToTCP(clientsArray.get(0), "start" + desc.getText());
+                    Gdx.app.log("MESSAGE", "send message(String) to server");
+                    server.sendToTCP(clientsArray.get(0), desc.getText());//"start" + desc.getText());
                 }
             }
         });
-        stage.addActor(send);
-        Gdx.input.setInputProcessor(inputMultiplexer);
-        pixmap = new Pixmap(Config.SIZE_X, Config.SIZE_Y, Pixmap.Format.RGBA8888);
+
+        Pixmap pixmap = new Pixmap(Config.SIZE_X, Config.SIZE_Y, Pixmap.Format.RGBA8888);
         pixmap.setColor(1, 1, 1, 1);
         pixmap.fill();
         texture = new Texture(pixmap);
         pixmap.dispose();
-        clientsArray = new Array<>();
-        batch = new SpriteBatch();
+
         server = new Server(Register.BUFFER_SIZE, Register.BUFFER_SIZE);
         Register.register(server.getKryo());
         new Thread(new Runnable() {
@@ -149,12 +135,13 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
                             super.received(connection, object);
                             if (object instanceof byte[]) {
                                 if (connection.getID() != clientsArray.get(clientsArray.size - 1)) {
+                                    Gdx.app.log("MESSAGE", "received message(Pixmap) " + ((byte[]) (object))[0] + ". Send message(Pixmap) to client");
                                     server.sendToTCP(connection.getID() + 1, object);
                                 } else {
                                     Gdx.app.postRunnable(() -> {
                                         byte[] pixelData = (byte[]) (object);
                                         chunk[pixelData[0]] = true;
-                                        System.out.println(Arrays.toString(pixelData));
+                                        Gdx.app.log("MESSAGE", "received message(Pixmap) " + pixelData[0] + " from last client");
                                         System.arraycopy(pixelData, 1, image, pixelData[0] * Config.bytePackegeSize, pixelData.length - 1);
                                         boolean isAllPackageReceived = false;
                                         for (boolean b : chunk) {
@@ -172,21 +159,20 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
                                             pixels.position(0);
 
                                             texture = new Texture(pixmap);
+                                            Gdx.app.log("PIXMAP", "create Pixmap from all pixmap chunks");
                                         }
                                     });
                                 }
                             } else if (object instanceof String) {
                                 String msg = (String) object;
                                 if (connection.getID() != clientsArray.get(clientsArray.size - 1)) {
-                                    server.sendToTCP(connection.getID() + 1, "start" + msg);
-                                } else
+                                    Gdx.app.log("MESSAGE", "received message(String) " + msg + ". Send message(String) to client");
+                                    server.sendToTCP(connection.getID() + 1, msg);
+                                } else {
+                                    Gdx.app.log("MESSAGE", "received message(String) " + msg + " from last client");
                                     receivedMsg.setText(msg);
+                                }
                             }
-                        }
-
-                        @Override
-                        public void idle(Connection connection) {
-                            super.idle(connection);
                         }
                     });
                 } catch (IOException e) {
@@ -199,8 +185,8 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
 
     @Override
     public void render(float delta) {
-        camera.update();
         ScreenUtils.clear(1, 1, 1, 1);
+        camera.update();
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
         if (!send.isVisible())
@@ -300,6 +286,25 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
 
     @Override
     public void pinchStop() {
+    }
 
+    private void sendPixmap() {
+        pixelData = ScreenUtils.getFrameBufferPixels(Config.X1, Gdx.graphics.getHeight() - Config.Y1 - Config.SIZE_Y, Config.SIZE_X, Config.SIZE_Y, true);
+        bytes = new byte[Config.bytePackegeSize + 1];
+        packegeNumber = 0;
+        new Timer().scheduleTask(new Timer.Task() {
+            @Override
+            public void run() {
+                bytes[0] = packegeNumber;
+                System.out.println(packegeNumber + "  " + bytes[0] * Config.bytePackegeSize);
+                System.arraycopy(pixelData, Config.bytePackegeSize * bytes[0], bytes, 1, bytes.length - 1);
+                try {
+                    server.sendToTCP(clientsArray.get(0), bytes);
+                } catch (KryoException e) {
+                    e.printStackTrace();
+                }
+                packegeNumber++;
+            }
+        }, Register.TIME_DELTA, Register.TIME_DELTA, Config.bytePackageCount - 1);
     }
 }
