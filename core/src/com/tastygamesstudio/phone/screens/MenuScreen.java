@@ -65,7 +65,7 @@ public class MenuScreen implements Screen {
                                     Integer.parseInt(ss[1]) >= 0 && Integer.parseInt(ss[1]) <= 255 &&
                                     Integer.parseInt(ss[2]) >= 0 && Integer.parseInt(ss[2]) <= 255 &&
                                     Integer.parseInt(ss[3]) >= 0 && Integer.parseInt(ss[3]) <= 255) {
-                                app.setScreen(new ClientScreen(serverIPField.getText()));
+                                app.setScreen(new ClientScreen(serverIPField.getText(), name.getText()));
                             }
                         } catch (Exception e) {
                             e.printStackTrace();

@@ -10,4 +10,6 @@ public class Config {
     public static final int imageSize = SIZE_X * SIZE_Y * 4;
     public static final int bytePackageCount = 128;
     public static final int bytePackegeSize = imageSize / bytePackageCount;
+
+    public static final String CONNECTION_NAME_CODE = "CONNECTION/CODE/NAME:";
 }
