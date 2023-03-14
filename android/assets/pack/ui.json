@@ -1,0 +1,24 @@
+{
+  com.badlogic.gdx.graphics.g2d.BitmapFont: {
+    font: {
+      file: font.ttf
+    }
+  },
+  com.badlogic.gdx.graphics.Color: {
+    black: {
+      r: 0,
+      g: 0,
+      b: 0,
+      a: 1
+    }
+  },
+  com.badlogic.gdx.scenes.scene2d.ui.TextField$TextFieldStyle: {
+    default: {
+      font: font,
+      fontColor: black,
+      background: textField_background,
+      cursor: black,
+      selection: selection
+    }
+  }
+}

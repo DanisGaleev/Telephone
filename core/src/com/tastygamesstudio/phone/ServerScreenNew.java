@@ -17,6 +17,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryonet.Connection;
@@ -27,7 +28,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class ServerScreen implements Screen, GestureDetector.GestureListener {
+public class ServerScreenNew implements Screen, GestureDetector.GestureListener {
     private OrthographicCamera camera;
     private Stage stage;
     private SpriteBatch batch;
@@ -57,7 +58,7 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
 
     private boolean isStarted, isCanDraw;
 
-    public ServerScreen(String ip) {
+    public ServerScreenNew(String ip) {
         this.ip = ip;
     }
 
@@ -84,8 +85,9 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
         clientNameLabels = new Array<>();
 
         camera = new OrthographicCamera();
-        camera.setToOrtho(false, Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
-        Viewport viewport = new ScreenViewport(camera);
+        camera.setToOrtho(false, 1920, 1080);
+        //camera.setToOrtho(false, Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
+        Viewport viewport = new StretchViewport(1920, 1080);
         stage = new Stage(viewport);
         stage.setDebugAll(true);
         batch = new SpriteBatch();
@@ -95,11 +97,11 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
         Gdx.input.setInputProcessor(inputMultiplexer);
 
         CHOOSED_COLOR = new Color(Color.BLACK);
-        pixmapUser = new Pixmap(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), Pixmap.Format.RGB888);
+        pixmapUser = new Pixmap(1920, 1080, Pixmap.Format.RGB888);
         pixmapUser.setColor(1, 1, 1, 1);
         pixmapUser.fill();
         pixmapUser.setColor(1, 1, 0, 0.1f);
-        pixmapUser.fillRectangle(Config.X1, Config.Y1, Config.SIZE_X, Config.SIZE_Y);
+        pixmapUser.fillRectangle(Config.X1, (int) (Config.Y1 * 1920 / 1280f), (int) (Config.SIZE_X * 1920 / 1280f), (int) (Config.SIZE_Y * 1920 / 1280f));
         textureUser = new Texture(pixmapUser);
 
         FreeTypeFontGenerator.FreeTypeFontParameter parameterLabel = new FreeTypeFontGenerator.FreeTypeFontParameter();
@@ -136,7 +138,7 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
         start.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                if (clientsArray.size % 2 == 0)
+                if (clientsArray.size % 2 == 1) //обязательно исправить на 0
                     desc.setVisible(true);
                 else {
                     isCanDraw = true;
@@ -507,8 +509,8 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
     }
 
     @Override
-    public boolean touchDown(float x, float y, int pointer, int button) {
-        if (isCanDraw && (clientsArray.size + 1) % 2 == 0 && isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
+    public boolean touchDown(float x, float y, int pointer, int button) {//исправить везда на + 1
+        if (isCanDraw && (clientsArray.size) % 2 == 0 && isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
             pixmapUser.setColor(CHOOSED_COLOR);
             pixmapUser.fillCircle((int) (x), (int) (y), BRUSH_SIZE);
             textureUser.draw(pixmapUser, 0, 0);
@@ -518,7 +520,7 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
 
     @Override
     public boolean tap(float x, float y, int count, int button) {
-        if (isCanDraw && (clientsArray.size + 1) % 2 == 0 && isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
+        if (isCanDraw && (clientsArray.size) % 2 == 0 && isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
             pixmapUser.setColor(CHOOSED_COLOR);
             pixmapUser.fillCircle((int) (x), (int) (y), BRUSH_SIZE);
             textureUser.draw(pixmapUser, 0, 0);
@@ -538,9 +540,10 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
 
     @Override
     public boolean pan(float x, float y, float deltaX, float deltaY) {
-        if (isCanDraw && (clientsArray.size + 1) % 2 == 0 && isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
+        if (isCanDraw && (clientsArray.size) % 2 == 0 && isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
             pixmapUser.setColor(CHOOSED_COLOR);
-            pixmapUser.fillCircle((int) (x), (int) (y), BRUSH_SIZE);
+            System.out.println(x + " " + y);
+            pixmapUser.fillCircle((int) (x * 1920 / 1280f), (int) (y * 1080 / 720f), BRUSH_SIZE);
             textureUser.draw(pixmapUser, 0, 0);
         }
         return false;

@@ -3,14 +3,12 @@ package com.tastygamesstudio.phone;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -21,22 +19,28 @@ import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
+import com.tastygamesstudio.phone.screens.MenuScreen;
+import com.tastygamesstudio.phone.toast.Toast;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class ClientScreen implements Screen, GestureDetector.GestureListener {
+
+    private final Phone game;
+
     private OrthographicCamera camera;
     private Stage stage;
     private SpriteBatch batch;
 
     private Label receivedMsg;
     private TextField desc;
-    private ImageButton send;
+    private ImageButton red, orange, yellow, green, light_blue, blue, white, black;
+    private ImageButton huge, large, medium, small;
 
     private Client client;
-    private final String ip;
+    private final String serverIp;
     private final String clientName;
 
     private Color CHOOSED_COLOR;
@@ -56,13 +60,49 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
 
     private byte ID;
 
-    public ClientScreen(String ip, String name) {
-        this.ip = ip;
+    public ClientScreen(Phone game, String serverIp, String name) {
+        this.game = game;
+        this.serverIp = serverIp;
         this.clientName = name;
     }
 
     @Override
     public void show() {
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("font/font.ttf"));
+        FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        parameter.size = 24;
+        //parameter.padLeft = 8;
+        parameter.characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                + "abcdefghijklmnopqrstuvwxyz"
+                + "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+                + "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+                + "1234567890.,:;_¡!¿?\"'+-*/()[]={}";
+
+        FreeTypeFontGenerator.FreeTypeFontParameter parameterLabel = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        parameterLabel.size = 24;
+        parameterLabel.characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                + "abcdefghijklmnopqrstuvwxyz"
+                + "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+                + "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+                + "1234567890.,:;_¡!¿?\"'+-*/()[]={}";
+        Label.LabelStyle labelStyle = new Label.LabelStyle(generator.generateFont(parameterLabel), Color.BLACK);
+
+        Label oneCharSizeCalibrationThrowAway = new Label("|", labelStyle);
+        Pixmap cursorColor = new Pixmap((int) oneCharSizeCalibrationThrowAway.getWidth(),
+                (int) oneCharSizeCalibrationThrowAway.getHeight(),
+                Pixmap.Format.RGB888);
+        cursorColor.setColor(Color.BLACK);
+        cursorColor.fill();
+
+        TextField.TextFieldStyle textFieldStyle = new TextField.TextFieldStyle();
+
+        textFieldStyle.font = generator.generateFont(parameter);
+        textFieldStyle.fontColor = Color.BLACK;
+        textFieldStyle.background = new TextureRegionDrawable(new Texture("ui/textField_background.png"));
+        textFieldStyle.selection = new TextureRegionDrawable(new Texture("ui/selection.png"));
+        //textFieldStyle.cursor = new Image(new Texture(cursorColor)).getDrawable();
+        textFieldStyle.cursor = new TextureRegionDrawable(new Texture("ui/cursor.png"));
+
         image = new byte[Config.imageSize];
 
         camera = new OrthographicCamera();
@@ -71,23 +111,33 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
         stage = new Stage(viewport);
         stage.setDebugAll(true);
         batch = new SpriteBatch();
-        Skin skin = new Skin(Gdx.files.internal("skin/skin-composer-ui.json"));
+        //Skin skin = new Skin(Gdx.files.internal("pack/ui.json"));
+
+        //TextField textField = new TextField("", skin, "default");
+        //textField.setPosition(720, 200);
+        //stage.addActor(textField);
 
         InputMultiplexer inputMultiplexer = new InputMultiplexer(new GestureDetector(this), stage);
         Gdx.input.setInputProcessor(inputMultiplexer);
 
-        receivedMsg = new Label("", skin, "default");
-        receivedMsg.setPosition(Gdx.graphics.getWidth() / 2 - receivedMsg.getWidth() / 2, 40);
+
+        receivedMsg = new Label("", labelStyle);
+        receivedMsg.setVisible(false);
+        receivedMsg.setSize(500, 50);
+        receivedMsg.setPosition(Gdx.graphics.getWidth() / 2 - receivedMsg.getWidth() / 2, Gdx.graphics.getHeight() - 100);
         stage.addActor(receivedMsg);
 
-        desc = new TextField("", skin, "default");
-        desc.setSize(500, desc.getHeight());
-        desc.setPosition(Gdx.graphics.getWidth() / 2 - desc.getWidth() / 2, 690);
+        desc = new TextField("", textFieldStyle);
         desc.setVisible(false);
+        desc.setSize(500, 50);
+        desc.setPosition(Gdx.graphics.getWidth() / 2 - desc.getWidth() / 2, Gdx.graphics.getHeight() - desc.getHeight());
+        desc.getStyle().font = generator.generateFont(parameter);
         stage.addActor(desc);
 
-        send = new ImageButton(skin, "default");
-        send.setBounds(1150, 40, 100, 100);
+        ImageButton send = new ImageButton(new TextureRegionDrawable(new Texture("ui/send_up.png")),
+                new TextureRegionDrawable(new Texture("ui/send_down.png")),
+                new TextureRegionDrawable(new Texture("ui/send_down.png")));
+        send.setPosition(Gdx.graphics.getWidth() - 100, 0);
         send.setVisible(false);
         stage.addActor(send);
         send.addListener(new ClickListener() {
@@ -95,23 +145,26 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
             public void clicked(InputEvent event, float x, float y) {
                 super.clicked(event, x, y);
                 send.setVisible(false);
-                desc.setVisible(false);
+                //desc.setVisible(false);
                 if (ID % 2 == 0) {
                     Gdx.app.log("MESSAGE", "send message(Pixmap) to server");
                     sendPixmap();
                 } else {
                     Gdx.app.log("MESSAGE", "send message(String) to server");
+                    desc.setDisabled(true);
                     client.sendTCP(desc.getText());
                 }
+                ID = -1;
             }
         });
         Pixmap color = new Pixmap(80, 80, Pixmap.Format.RGB888);
 
         color.setColor(Color.RED);
         color.fill();
-        ImageButton red = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        red.setPosition(1100, 420);
+        red = new ImageButton(new TextureRegionDrawable(new Texture(color)));
+        red.setPosition(Gdx.graphics.getWidth() - 160, 365);
         stage.addActor(red);
+        red.setVisible(false);
         red.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -121,8 +174,9 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
 
         color.setColor(Color.ORANGE);
         color.fill();
-        ImageButton orange = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        orange.setPosition(1180, 420);
+        orange = new ImageButton(new TextureRegionDrawable(new Texture(color)));
+        orange.setPosition(Gdx.graphics.getWidth() - 80, 365);
+        orange.setVisible(false);
         stage.addActor(orange);
         orange.addListener(new ClickListener() {
             @Override
@@ -130,10 +184,12 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
                 CHOOSED_COLOR.set(Color.ORANGE);
             }
         });
+
         color.setColor(Color.YELLOW);
         color.fill();
-        ImageButton yellow = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        yellow.setPosition(1100, 340);
+        yellow = new ImageButton(new TextureRegionDrawable(new Texture(color)));
+        yellow.setPosition(Gdx.graphics.getWidth() - 160, 285);
+        yellow.setVisible(false);
         stage.addActor(yellow);
         yellow.addListener(new ClickListener() {
             @Override
@@ -141,10 +197,12 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
                 CHOOSED_COLOR.set(Color.YELLOW);
             }
         });
+
         color.setColor(Color.GREEN);
         color.fill();
-        ImageButton green = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        green.setPosition(1180, 340);
+        green = new ImageButton(new TextureRegionDrawable(new Texture(color)));
+        green.setPosition(Gdx.graphics.getWidth() - 80, 285);
+        green.setVisible(false);
         stage.addActor(green);
         green.addListener(new ClickListener() {
             @Override
@@ -152,10 +210,12 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
                 CHOOSED_COLOR.set(Color.GREEN);
             }
         });
+
         color.setColor(0, 1, 0.82f, 1);
         color.fill();
-        ImageButton light_blue = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        light_blue.setPosition(1100, 260);
+        light_blue = new ImageButton(new TextureRegionDrawable(new Texture(color)));
+        light_blue.setPosition(Gdx.graphics.getWidth() - 160, 205);
+        light_blue.setVisible(false);
         stage.addActor(light_blue);
         light_blue.addListener(new ClickListener() {
             @Override
@@ -163,10 +223,12 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
                 CHOOSED_COLOR.set(0, 1, 0.82f, 1);
             }
         });
+
         color.setColor(Color.BLUE);
         color.fill();
-        ImageButton blue = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        blue.setPosition(1180, 260);
+        blue = new ImageButton(new TextureRegionDrawable(new Texture(color)));
+        blue.setPosition(Gdx.graphics.getWidth() - 80, 205);
+        blue.setVisible(false);
         stage.addActor(blue);
         blue.addListener(new ClickListener() {
             @Override
@@ -174,10 +236,12 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
                 CHOOSED_COLOR.set(Color.BLUE);
             }
         });
+
         color.setColor(Color.WHITE);
         color.fill();
-        ImageButton white = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        white.setPosition(1100, 180);
+        white = new ImageButton(new TextureRegionDrawable(new Texture(color)));
+        white.setPosition(Gdx.graphics.getWidth() - 160, 125);
+        white.setVisible(false);
         stage.addActor(white);
         white.addListener(new ClickListener() {
             @Override
@@ -185,10 +249,12 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
                 CHOOSED_COLOR.set(Color.WHITE);
             }
         });
+
         color.setColor(Color.BLACK);
         color.fill();
-        ImageButton black = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        black.setPosition(1180, 180);
+        black = new ImageButton(new TextureRegionDrawable(new Texture(color)));
+        black.setPosition(Gdx.graphics.getWidth() - 80, 125);
+        black.setVisible(false);
         stage.addActor(black);
         black.addListener(new ClickListener() {
             @Override
@@ -205,8 +271,9 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
         size.setColor(Color.BLACK);
 
         size.fillCircle(30, 30, 5);
-        ImageButton small = new ImageButton(new TextureRegionDrawable(new Texture(size)));
-        small.setPosition(100, 40);
+        small = new ImageButton(new TextureRegionDrawable(new Texture(size)));
+        small.setPosition(180, 570);
+        small.setVisible(false);
         stage.addActor(small);
         small.addListener(new ClickListener() {
             @Override
@@ -216,8 +283,9 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
         });
 
         size.fillCircle(30, 30, 10);
-        ImageButton medium = new ImageButton(new TextureRegionDrawable(new Texture(size)));
-        medium.setPosition(160, 40);
+        medium = new ImageButton(new TextureRegionDrawable(new Texture(size)));
+        medium.setPosition(120, 570);
+        medium.setVisible(false);
         stage.addActor(medium);
         medium.addListener(new ClickListener() {
             @Override
@@ -227,8 +295,9 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
         });
 
         size.fillCircle(30, 30, 20);
-        ImageButton large = new ImageButton(new TextureRegionDrawable(new Texture(size)));
-        large.setPosition(220, 40);
+        large = new ImageButton(new TextureRegionDrawable(new Texture(size)));
+        large.setPosition(60, 570);
+        large.setVisible(false);
         stage.addActor(large);
         large.addListener(new ClickListener() {
             @Override
@@ -238,8 +307,9 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
         });
 
         size.fillCircle(30, 30, 30);
-        ImageButton huge = new ImageButton(new TextureRegionDrawable(new Texture(size)));
-        huge.setPosition(280, 40);
+        huge = new ImageButton(new TextureRegionDrawable(new Texture(size)));
+        huge.setPosition(0, 570);
+        huge.setVisible(false);
         stage.addActor(huge);
         huge.addListener(new ClickListener() {
             @Override
@@ -265,7 +335,7 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
             public void run() {
                 client.start();
                 try {
-                    client.connect(Register.TIMEOUT, ip, Register.TCP_PORT, Register.UDP_PORT);
+                    client.connect(Register.TIMEOUT, serverIp, Register.TCP_PORT, Register.UDP_PORT);
                     client.sendTCP(Config.CONNECTION_NAME_CODE + clientName);
                 } catch (IOException e) {
                     client.close();
@@ -289,8 +359,23 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
                             ID = 0;
                             String s = (String) object;
                             isStarted = true;
+                            receivedMsg.setVisible(true);
                             receivedMsg.setText(s);
                             send.setVisible(true);
+
+                            red.setVisible(true);
+                            orange.setVisible(true);
+                            yellow.setVisible(true);
+                            green.setVisible(true);
+                            light_blue.setVisible(true);
+                            blue.setVisible(true);
+                            white.setVisible(true);
+                            black.setVisible(true);
+
+                            huge.setVisible(true);
+                            large.setVisible(true);
+                            medium.setVisible(true);
+                            small.setVisible(true);
                             Gdx.app.log("MESSAGE", "received message(String) " + s + " from server");
                         } else if (object instanceof byte[]) {
                             ID = 1;
@@ -335,8 +420,8 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
         if (texture != null) {
-            batch.draw(texture, Config.X1, Gdx.graphics.getHeight() - Config.Y1 - Config.SIZE_Y);
-        } else {
+            batch.draw(texture, 0, 0);
+        } else if (isStarted) {
             batch.draw(textureUser, 0, 0);
         }
         batch.end();
@@ -366,9 +451,10 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
 
     @Override
     public void dispose() {
-        batch.dispose();
-        client.close();
-        texture.dispose();
+        if (client.isConnected())
+            client.close();
+        if (texture != null)
+            texture.dispose();
         textureUser.dispose();
         pixmapUser.dispose();
         try {
@@ -376,11 +462,12 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        batch.dispose();
     }
 
     @Override
     public boolean touchDown(float x, float y, int pointer, int button) {
-        if (isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
+        if (ID == 0 && isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
             pixmapUser.setColor(CHOOSED_COLOR);
             pixmapUser.fillCircle((int) (x), (int) (y), BRUSH_SIZE);
             textureUser.draw(pixmapUser, 0, 0);
@@ -390,7 +477,7 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
 
     @Override
     public boolean tap(float x, float y, int count, int button) {
-        if (isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
+        if (ID == 0 && isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
             pixmapUser.setColor(CHOOSED_COLOR);
             pixmapUser.fillCircle((int) (x), (int) (y), BRUSH_SIZE);
             textureUser.draw(pixmapUser, 0, 0);
@@ -410,7 +497,7 @@ public class ClientScreen implements Screen, GestureDetector.GestureListener {
 
     @Override
     public boolean pan(float x, float y, float deltaX, float deltaY) {
-        if (isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
+        if (ID == 0 && isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
             pixmapUser.setColor(CHOOSED_COLOR);
             pixmapUser.fillCircle((int) (x), (int) (y), BRUSH_SIZE);
             textureUser.draw(pixmapUser, 0, 0);

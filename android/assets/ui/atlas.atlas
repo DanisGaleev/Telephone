@@ -1,0 +1,96 @@
+
+atlas.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+client_down
+  rotate: false
+  xy: 1, 136
+  size: 208, 98
+  orig: 208, 98
+  offset: 0, 0
+  index: -1
+client_up
+  rotate: false
+  xy: 1, 36
+  size: 208, 98
+  orig: 208, 98
+  offset: 0, 0
+  index: -1
+server_down
+  rotate: false
+  xy: 211, 136
+  size: 208, 98
+  orig: 208, 98
+  offset: 0, 0
+  index: -1
+server_up
+  rotate: false
+  xy: 211, 36
+  size: 208, 98
+  orig: 208, 98
+  offset: 0, 0
+  index: -1
+start_down
+  rotate: false
+  xy: 421, 136
+  size: 208, 98
+  orig: 208, 98
+  offset: 0, 0
+  index: -1
+start_up
+  rotate: false
+  xy: 421, 36
+  size: 208, 98
+  orig: 208, 98
+  offset: 0, 0
+  index: -1
+textField_background
+  rotate: false
+  xy: 631, 174
+  size: 200, 60
+  orig: 200, 60
+  offset: 0, 0
+  index: -1
+send_down
+  rotate: false
+  xy: 631, 64
+  size: 108, 108
+  orig: 108, 108
+  offset: 0, 0
+  index: -1
+send_up
+  rotate: false
+  xy: 741, 64
+  size: 108, 108
+  orig: 108, 108
+  offset: 0, 0
+  index: -1
+textField_background_s
+  rotate: false
+  xy: 1, 4
+  size: 30, 30
+  orig: 30, 30
+  offset: 0, 0
+  index: -1
+cursor
+  rotate: false
+  xy: 631, 47
+  size: 1, 15
+  orig: 1, 15
+  offset: 0, 0
+  index: -1
+selection
+  rotate: false
+  xy: 833, 219
+  size: 1, 15
+  orig: 1, 15
+  offset: 0, 0
+  index: -1
+white
+  rotate: false
+  xy: 1, 1
+  size: 1, 1
+  orig: 1, 1
+  offset: 0, 0
+  index: -1

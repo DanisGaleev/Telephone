@@ -1,0 +1,73 @@
+{
+  BitmapFont: {
+    font: {
+      file: font.ttf,
+      size: 16
+    }
+  },
+  Color: {
+    black: {
+      r: 0,
+      g: 0,
+      b: 0,
+      a: 1
+    },
+    white: {
+      r: 1,
+      g: 1,
+      b: 1,
+      a: 1
+    }
+  },
+  com.badlogic.gdx.scenes.scene2d.ui.Skin$TintedDrawable: {
+    //background: {
+    //  name: white,
+    //  color:{hex : 1eca256b}
+    //},
+    black: {
+      name: white,
+      color: {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 1
+      }
+    },
+    highlight: {
+      name: white,
+      color: {
+        r: 0.67058825,
+        g: 0.92156863,
+        b: 1,
+        a: 1
+      }
+    },
+    selected: {
+      name: white,
+      color: {
+        r: 0.23137255,
+        g: 0.49803922,
+        b: 1,
+        a: 1
+      }
+    },
+    menu-bg: {
+      name: white,
+      color: {
+        r: 0.9411765,
+        g: 0.9411765,
+        b: 0.9411765,
+        a: 1
+      }
+    }
+  },
+  com.badlogic.gdx.scenes.scene2d.ui.TextField$TextFieldStyle: {
+    default: {
+      font : font,
+      fontColor: black,
+      background: textField_background_s,
+      cursor: black,
+      selection: highlight
+    }
+  }
+}

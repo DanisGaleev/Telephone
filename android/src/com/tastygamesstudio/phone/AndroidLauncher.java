@@ -10,13 +10,24 @@ import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 import com.tastygamesstudio.phone.Phone;
 
 public class AndroidLauncher extends AndroidApplication {
-	@Override
-	protected void onCreate (Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
-		WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
-		String ipAddress = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
-		Toast.makeText(this, "Server ip : " + ipAddress, Toast.LENGTH_LONG).show();
-		initialize(new Phone(ipAddress), config);
-	}
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+        String ipAddress = Formatter.formatIpAddress(wifiManager.getConnectionInfo().getIpAddress());
+        Toast.makeText(this, "Server ip : " + ipAddress, Toast.LENGTH_LONG).show();
+        initialize(new Phone(ipAddress), config);
+    }
+
+    public interface Send {
+        public void toast(String msg);
+    }
+
+    public void toastMaker(String msg, boolean duration) {
+        if (duration)
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        else
+            Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+    }
 }
