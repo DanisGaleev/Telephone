@@ -28,10 +28,13 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class ServerScreenNew implements Screen, GestureDetector.GestureListener {
+public class ServerScreen implements Screen, GestureDetector.GestureListener {
     private OrthographicCamera camera;
     private Stage stage;
     private SpriteBatch batch;
+    private final int WIDTH = 1920;
+    private final int HEIGHT = 1080;
+    private final float XK = WIDTH / 1280f, YK = HEIGHT / 720f;
 
     private Label receivedMsg;
     private TextField desc;
@@ -58,7 +61,7 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
 
     private boolean isStarted, isCanDraw;
 
-    public ServerScreenNew(String ip) {
+    public ServerScreen(String ip) {
         this.ip = ip;
     }
 
@@ -85,9 +88,8 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
         clientNameLabels = new Array<>();
 
         camera = new OrthographicCamera();
-        camera.setToOrtho(false, 1920, 1080);
-        //camera.setToOrtho(false, Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
-        Viewport viewport = new StretchViewport(1920, 1080);
+        camera.setToOrtho(false, WIDTH, HEIGHT);
+        Viewport viewport = new StretchViewport(WIDTH, HEIGHT);
         stage = new Stage(viewport);
         stage.setDebugAll(true);
         batch = new SpriteBatch();
@@ -97,11 +99,12 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
         Gdx.input.setInputProcessor(inputMultiplexer);
 
         CHOOSED_COLOR = new Color(Color.BLACK);
-        pixmapUser = new Pixmap(1920, 1080, Pixmap.Format.RGB888);
+        pixmapUser = new Pixmap(WIDTH, HEIGHT, Pixmap.Format.RGB888);
         pixmapUser.setColor(1, 1, 1, 1);
         pixmapUser.fill();
         pixmapUser.setColor(1, 1, 0, 0.1f);
-        pixmapUser.fillRectangle(Config.X1, (int) (Config.Y1 * 1920 / 1280f), (int) (Config.SIZE_X * 1920 / 1280f), (int) (Config.SIZE_Y * 1920 / 1280f));
+        pixmapUser.fillRectangle(Config.X1, (int) (Config.Y1 * YK),
+                (int) (Config.SIZE_X * XK), (int) (Config.SIZE_Y * YK));
         textureUser = new Texture(pixmapUser);
 
         FreeTypeFontGenerator.FreeTypeFontParameter parameterLabel = new FreeTypeFontGenerator.FreeTypeFontParameter();
@@ -116,29 +119,29 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
         receivedMsg = new Label("", labelStyle);
         receivedMsg.setVisible(false);
         receivedMsg.setSize(500, 50);
-        receivedMsg.setPosition(Gdx.graphics.getWidth() / 2 - receivedMsg.getWidth() / 2, Gdx.graphics.getHeight() - 100);
+        receivedMsg.setPosition(WIDTH / 2 - receivedMsg.getWidth() / 2, HEIGHT - 100);
         stage.addActor(receivedMsg);
 
         Label ipLabel = new Label(ip, labelStyle);
-        ipLabel.setPosition(0, Gdx.graphics.getHeight() - ipLabel.getHeight());
+        ipLabel.setPosition(0, HEIGHT - ipLabel.getHeight());
         stage.addActor(ipLabel);
 
         desc = new TextField("", textFieldStyle);
         desc.setVisible(false);
         desc.setSize(500, 50);
-        desc.setPosition(Gdx.graphics.getWidth() / 2 - desc.getWidth() / 2, Gdx.graphics.getHeight() - desc.getHeight());
+        desc.setPosition(WIDTH / 2 - desc.getWidth() / 2, HEIGHT - desc.getHeight());
         desc.getStyle().font = generator.generateFont(parameter);
         stage.addActor(desc);
 
         ImageButton start = new ImageButton(new TextureRegionDrawable(new Texture("ui/start_up.png")),
                 new TextureRegionDrawable(new Texture("ui/start_down.png")),
                 new TextureRegionDrawable(new Texture("ui/start_down.png")));
-        start.setPosition(Gdx.graphics.getWidth() / 2 - start.getWidth() / 2, Gdx.graphics.getHeight() / 2 - start.getHeight() / 2);
+        start.setPosition(WIDTH / 2 - start.getWidth() / 2, HEIGHT / 2 - start.getHeight() / 2);
         stage.addActor(start);
         start.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                if (clientsArray.size % 2 == 1) //обязательно исправить на 0
+                if (clientsArray.size % 2 == 1)
                     desc.setVisible(true);
                 else {
                     isCanDraw = true;
@@ -192,15 +195,15 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
         table.setDebug(true);
         ScrollPane clientsScroolPane = new ScrollPane(table, skin, "default");
         clientsScroolPane.setScrollBarPositions(true, true);
-        clientsScroolPane.setBounds(Gdx.graphics.getWidth() - 200, Gdx.graphics.getHeight() - 200, 200, 200);
+        clientsScroolPane.setBounds(WIDTH - 200, HEIGHT - 200, 200, 200);
         stage.addActor(clientsScroolPane);
 
-        Pixmap color = new Pixmap(80, 80, Pixmap.Format.RGB888);
+        Pixmap color = new Pixmap((int) (80 * XK), (int) (80 * YK), Pixmap.Format.RGB888);
 
         color.setColor(Color.RED);
         color.fill();
         red = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        red.setPosition(Gdx.graphics.getWidth() - 160, 365);
+        red.setPosition(WIDTH - 160 * XK, 365 * YK);
         stage.addActor(red);
         red.setVisible(false);
         red.addListener(new ClickListener() {
@@ -213,7 +216,7 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
         color.setColor(Color.ORANGE);
         color.fill();
         orange = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        orange.setPosition(Gdx.graphics.getWidth() - 80, 365);
+        orange.setPosition(WIDTH - 80 * XK, 365 * YK);
         orange.setVisible(false);
         stage.addActor(orange);
         orange.addListener(new ClickListener() {
@@ -226,7 +229,7 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
         color.setColor(Color.YELLOW);
         color.fill();
         yellow = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        yellow.setPosition(Gdx.graphics.getWidth() - 160, 285);
+        yellow.setPosition(WIDTH - 160 * XK, 285 * YK);
         yellow.setVisible(false);
         stage.addActor(yellow);
         yellow.addListener(new ClickListener() {
@@ -239,7 +242,7 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
         color.setColor(Color.GREEN);
         color.fill();
         green = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        green.setPosition(Gdx.graphics.getWidth() - 80, 285);
+        green.setPosition(WIDTH - 80 * XK, 285 * YK);
         green.setVisible(false);
         stage.addActor(green);
         green.addListener(new ClickListener() {
@@ -252,7 +255,7 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
         color.setColor(0, 1, 0.82f, 1);
         color.fill();
         light_blue = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        light_blue.setPosition(Gdx.graphics.getWidth() - 160, 205);
+        light_blue.setPosition(WIDTH - 160 * XK, 205 * YK);
         light_blue.setVisible(false);
         stage.addActor(light_blue);
         light_blue.addListener(new ClickListener() {
@@ -265,7 +268,7 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
         color.setColor(Color.BLUE);
         color.fill();
         blue = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        blue.setPosition(Gdx.graphics.getWidth() - 80, 205);
+        blue.setPosition(WIDTH - 80 * XK, 205 * YK);
         blue.setVisible(false);
         stage.addActor(blue);
         blue.addListener(new ClickListener() {
@@ -278,7 +281,7 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
         color.setColor(Color.WHITE);
         color.fill();
         white = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        white.setPosition(Gdx.graphics.getWidth() - 160, 125);
+        white.setPosition(WIDTH - 160 * XK, 125 * YK);
         white.setVisible(false);
         stage.addActor(white);
         white.addListener(new ClickListener() {
@@ -291,7 +294,7 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
         color.setColor(Color.BLACK);
         color.fill();
         black = new ImageButton(new TextureRegionDrawable(new Texture(color)));
-        black.setPosition(Gdx.graphics.getWidth() - 80, 125);
+        black.setPosition(WIDTH - 80 * XK, 125 * YK);
         black.setVisible(false);
         stage.addActor(black);
         black.addListener(new ClickListener() {
@@ -303,56 +306,56 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
 
         color.dispose();
 
-        Pixmap size = new Pixmap(60, 60, Pixmap.Format.RGB888);
+        Pixmap size = new Pixmap((int) (60 * XK), (int) (60 * YK), Pixmap.Format.RGB888);
         size.setColor(Color.WHITE);
         size.fill();
         size.setColor(Color.BLACK);
 
-        size.fillCircle(30, 30, 5);
+        size.fillCircle((int) (30 * XK), (int) (30 * YK), (int) (5 * (XK + YK) / 2));
         small = new ImageButton(new TextureRegionDrawable(new Texture(size)));
-        small.setPosition(180, 570);
+        small.setPosition(180 * XK, 570 * YK);
         small.setVisible(false);
         stage.addActor(small);
         small.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                BRUSH_SIZE = 5;
+                BRUSH_SIZE = (byte) (5 * (XK + YK) / 2);
             }
         });
 
-        size.fillCircle(30, 30, 10);
+        size.fillCircle((int) (30 * XK), (int) (30 * YK), (int) (10 * (XK + YK) / 2));
         medium = new ImageButton(new TextureRegionDrawable(new Texture(size)));
-        medium.setPosition(120, 570);
+        medium.setPosition(120 * XK, 570 * YK);
         medium.setVisible(false);
         stage.addActor(medium);
         medium.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                BRUSH_SIZE = 10;
+                BRUSH_SIZE = (byte) (10 * (XK + YK) / 2);
             }
         });
 
-        size.fillCircle(30, 30, 20);
+        size.fillCircle((int) (30 * XK), (int) (30 * YK), (int) (20 * (XK + YK) / 2));
         large = new ImageButton(new TextureRegionDrawable(new Texture(size)));
-        large.setPosition(60, 570);
+        large.setPosition(60 * XK, 570 * YK);
         large.setVisible(false);
         stage.addActor(large);
         large.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                BRUSH_SIZE = 20;
+                BRUSH_SIZE = (byte) (20 * (XK + YK) / 2);
             }
         });
 
-        size.fillCircle(30, 30, 30);
+        size.fillCircle((int) (30 * XK), (int) (30 * YK), (int) (30 * (XK + YK) / 2));
         huge = new ImageButton(new TextureRegionDrawable(new Texture(size)));
-        huge.setPosition(0, 570);
+        huge.setPosition(0 * XK, 570 * YK);
         huge.setVisible(false);
         stage.addActor(huge);
         huge.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                BRUSH_SIZE = 30;
+                BRUSH_SIZE = (byte) (30 * (XK + YK) / 2);
             }
         });
 
@@ -509,10 +512,10 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
     }
 
     @Override
-    public boolean touchDown(float x, float y, int pointer, int button) {//исправить везда на + 1
+    public boolean touchDown(float x, float y, int pointer, int button) {
         if (isCanDraw && (clientsArray.size) % 2 == 0 && isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
             pixmapUser.setColor(CHOOSED_COLOR);
-            pixmapUser.fillCircle((int) (x), (int) (y), BRUSH_SIZE);
+            pixmapUser.fillCircle((int) (x * XK), (int) (y * YK), BRUSH_SIZE);
             textureUser.draw(pixmapUser, 0, 0);
         }
         return false;
@@ -522,7 +525,7 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
     public boolean tap(float x, float y, int count, int button) {
         if (isCanDraw && (clientsArray.size) % 2 == 0 && isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
             pixmapUser.setColor(CHOOSED_COLOR);
-            pixmapUser.fillCircle((int) (x), (int) (y), BRUSH_SIZE);
+            pixmapUser.fillCircle((int) (x * XK), (int) (y * YK), BRUSH_SIZE);
             textureUser.draw(pixmapUser, 0, 0);
         }
         return false;
@@ -542,8 +545,7 @@ public class ServerScreenNew implements Screen, GestureDetector.GestureListener 
     public boolean pan(float x, float y, float deltaX, float deltaY) {
         if (isCanDraw && (clientsArray.size) % 2 == 0 && isStarted && y - BRUSH_SIZE > Config.Y1 && y + BRUSH_SIZE < Config.Y2 && x + BRUSH_SIZE < Config.X2 && x - BRUSH_SIZE > Config.X1) {
             pixmapUser.setColor(CHOOSED_COLOR);
-            System.out.println(x + " " + y);
-            pixmapUser.fillCircle((int) (x * 1920 / 1280f), (int) (y * 1080 / 720f), BRUSH_SIZE);
+            pixmapUser.fillCircle((int) (x * XK), (int) (y * YK), BRUSH_SIZE);
             textureUser.draw(pixmapUser, 0, 0);
         }
         return false;
