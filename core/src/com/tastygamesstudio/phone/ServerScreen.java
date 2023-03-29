@@ -65,7 +65,8 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
 
     @Override
     public void show() {
-        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("font/font.ttf"));
+
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("ui/font.ttf"));
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
         parameter.size = 24;
         parameter.characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -187,7 +188,6 @@ public class ServerScreen implements Screen, GestureDetector.GestureListener {
         });
 
         Table table = new Table();
-        table.setDebug(true);
         ScrollPane clientsScroolPane = new ScrollPane(table, skin, "default");
         clientsScroolPane.setScrollBarPositions(true, true);
         clientsScroolPane.setBounds(1080, 520, 200, 200);

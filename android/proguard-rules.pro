@@ -18,9 +18,10 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
-
+#-dontoptimize
+#-dontobfuscate
 -verbose
-
+-printusage error/usage.txt
 -dontwarn com.badlogic.gdx.backends.android.AndroidFragmentApplication
 -dontwarn com.badlogic.gdx.utils.GdxBuild
 -dontwarn com.badlogic.gdx.physics.box2d.utils.Box2DBuild
@@ -29,7 +30,15 @@
 
 # Required if using Gdx-Controllers extension
 -keep class com.badlogic.gdx.controllers.android.AndroidControllers
-
+#-keep class com.badlogic.gdx.** { *; }
+-keep class * implements com.esotericsoftware.kryo.factories.ReflectionSerializerFactory{*;}
+-keep class com.esotericsoftware.kryo.serializers.FieldSerializer{*;}
+-keep public interface com.esotericsoftware.kryo.factories.SerializerFactory{*;}
+-keep public class com.esotericsoftware.reflectasm.**{*;}
+-keep public class com.badlogic.gdx.scenes.scene2d.ui.**{*;}
+-keep public class com.badlogic.gdx.graphics.g2d.BitmapFont{*;}
+-keep public class com.badlogic.gdx.graphics.Color{*;}
+-keep public class com.badlogic.gdx.scenes.scene2d.ui.Cell{*;}
 # Required if using Box2D extension
 -keepclassmembers class com.badlogic.gdx.physics.box2d.World {
    boolean contactFilter(long, long);

@@ -43,19 +43,8 @@ public class MenuScreen implements Screen {
         batch = new SpriteBatch();
         Viewport viewport = new StretchViewport(1280, 720);
         stage = new Stage(viewport);
-        //stage.setDebugAll(true);
 
-        Skin s = new FreeTypeSkin(Gdx.files.internal("ui/atlas.json"));
-        TextField t = new TextField("", s, "default");
-        t.setPosition(100, 400);
-        //stage.addActor(t);
-
-        Skin skin = new Skin(Gdx.files.internal("skin/skin-composer-ui.json"));
-        TextField tt = new TextField("", skin, "default");
-        tt.setPosition(100, 600);
-        System.out.println(tt.getStyle().font.getData());
-        //stage.addActor(tt);
-        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("font/font.ttf"));
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("ui/font.ttf"));
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
         parameter.size = 24;
         parameter.characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -63,6 +52,7 @@ public class MenuScreen implements Screen {
                 + "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
                 + "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
                 + "1234567890.,:;_¡!¿?\"'+-*/()[]={}";
+
         TextField.TextFieldStyle textFieldStyle = new TextField.TextFieldStyle();
         textFieldStyle.font = generator.generateFont(parameter);
         textFieldStyle.fontColor = Color.BLACK;
@@ -103,7 +93,7 @@ public class MenuScreen implements Screen {
                                     Integer.parseInt(ss[3]) >= 0 && Integer.parseInt(ss[3]) <= 255) {
                                 preferences.putString("com.tastygamesstudio.phone.name", name.getText());
                                 preferences.flush();
-                                app.setScreen(new ClientScreen(app, serverIPField.getText(), name.getText()));
+                                app.setScreen(new ClientScreen(serverIPField.getText(), name.getText()));
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
